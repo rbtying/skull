@@ -3,6 +3,10 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+mod players;
+
+pub use players::Players;
+
 /// A unique identifier for a player.
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
 #[serde(transparent)]
@@ -12,30 +16,8 @@ pub struct PlayerID(pub u32);
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub struct Player {
     pub(crate) player_id: PlayerID,
-    name: String,
+    pub(crate) name: String,
     pub(crate) score: Score,
-}
-
-/// The set of players playing the game.
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
-pub struct Players {
-    players: Vec<Player>,
-}
-
-impl Players {
-    pub fn new() -> Self {
-        Self { players: vec![] }
-    }
-
-    pub fn players(&self) -> &'_ [Player] {
-        &self.players
-    }
-
-    pub fn next_player(&self, player_id: PlayerID) -> Option<&'_ Player> {
-        let index = self.players.iter().position(|p| p.player_id == player_id)?;
-        let next_index = (index + 1) % self.players.len();
-        Some(&self.players[next_index])
-    }
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]

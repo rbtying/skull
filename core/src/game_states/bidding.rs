@@ -37,6 +37,9 @@ impl Bidding {
         if first_bid.1 as usize > cards.values().map(|c| c.len()).max().unwrap_or(0) {
             return Err(BiddingError::BidTooHigh);
         }
+        if first_bid.1 == 0 {
+            return Err(BiddingError::BidTooLow);
+        }
 
         let mut bids = HashMap::new();
         bids.insert(first_bid.0, Bid::Amount(first_bid.1));
@@ -45,7 +48,7 @@ impl Bidding {
             .next_player(first_bid.0)
             .map(|p| p.player_id)
             .ok_or(BiddingError::PlayerDoesntExist)?;
-        if players.players().len() < 2 {
+        if players.player_ids().len() < 2 {
             return Err(BiddingError::InsufficientPlayers);
         }
 
@@ -63,9 +66,9 @@ impl Bidding {
         let existing_bid = self.bids.get(&player_id).copied();
         let offset = self
             .players
-            .players()
+            .player_ids()
             .iter()
-            .position(|p| p.player_id == player_id)
+            .position(|p| *p == player_id)
             .ok_or(BiddingError::PlayerDoesntExist)?;
 
         let min_bid = self
@@ -102,10 +105,11 @@ impl Bidding {
             let next_player = {
                 // Find the next player who has never passed.
                 let mut next = player_id;
-                for i in 0..self.players.players().len() {
-                    let p = &self.players.players()[(i + offset) % self.players.players().len()];
-                    if new_bids.get(&p.player_id).copied() != Some(Bid::Pass) {
-                        next = p.player_id;
+                let num_players = self.players.player_ids().len();
+                for i in 0..num_players {
+                    let p = self.players.player_ids()[(i + offset) % num_players];
+                    if new_bids.get(&p).copied() != Some(Bid::Pass) {
+                        next = p;
                         break;
                     }
                 }
@@ -144,7 +148,7 @@ impl Bidding {
         });
         let (selector, goal) = iter.next().ok_or(BiddingError::BiddingIncomplete)?;
         // We advance to selection if everyone other than the current selector has passed.
-        if !iter.next().is_none() && num_passes == self.players.players().len() - 1 {
+        if !iter.next().is_none() && num_passes == self.players.player_ids().len() - 1 {
             let selection = Selection::new(
                 *selector,
                 *goal,
